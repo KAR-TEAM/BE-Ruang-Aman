@@ -1,9 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const { verifyToken, authorizeRole } = require('../middleware/authMiddleware');
-const adminController = require('../controllers/adminController');
+const { StatsDashboard, getAllReports, getAllUsers, deleteUser} = require('../controllers/adminController');
 
-router.get('/dashboard-admin',verifyToken, authorizeRole('admin'),DashboardAdmin);
-router.delete('/ifuser/:id',veryToken, authorizeRole('admin'), deleteUser);
+
+router.get('/stats',verifyToken, authorizeRole('admin'), StatsDashboard);
+router.get('/getallusers',verifyToken, authorizeRole('admin'), getAllUsers);
+router.get('/getallreports',verifyToken, authorizeRole('admin'), getAllReports);
+router.delete('/user/:id',verifyToken, authorizeRole('admin'), deleteUser);
 
 module.exports = router;

@@ -21,7 +21,7 @@ const register = async (req, res) => {
       userRole = "Guru BK";
     } else if (lowerRole === "admin" || lowerRole === "admin sekolah") {
       userRole = "Admin";
-    } else if (!school_id && ( lowerRole === "superadmin")) {
+    } else if (!school_id && lowerRole === "superadmin") {
       userRole = "Superadmin";
     }
 
@@ -270,6 +270,78 @@ const login = async (req, res) => {
   }
 };
 
+// Meminta pengiriman OTP untuk reset password
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email wajib diisi." });
+    }
+
+    const [users] = await db.query("SELECT nama FROM users WHERE email = ?", [
+      email,
+    ]);
+    if (users.length === 0) {
+      return res.status(404).json({ message: "Email tidak ditemukan." });
+    }
+
+    await createAndSendOtp(email, users[0].nama);
+    return res.json({
+      message: "Kode OTP untuk reset password telah dikirim ke email Anda.",
+    });
+  } catch (err) {
+    console.error("Forgot password error:", err.message);
+    return res
+      .status(500)
+      .json({ message: "Gagal mengirim kode OTP reset password." });
+  }
+};
+
+// Verifikasi OTP dan memperbarui password baru
+const resetPassword = async (req, res) => {
+  const connection = await db.getConnection();
+  try {
+    const { email, otp_code, newPassword } = req.body;
+
+    if (!email || !otp_code || !newPassword) {
+      connection.release();
+      return res
+        .status(400)
+        .json({ message: "Email, kode OTP, dan password baru wajib diisi." });
+    }
+
+    const isValid = await verifyOtpCode(email, otp_code);
+    if (!isValid) {
+      connection.release();
+      return res
+        .status(400)
+        .json({ message: "Kode OTP salah atau sudah kedaluwarsa." });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await connection.beginTransaction();
+
+    await connection.query("UPDATE users SET PASSWORD = ? WHERE email = ?", [
+      hashedPassword,
+      email,
+    ]);
+
+    await connection.commit();
+    connection.release();
+
+    return res.json({
+      message: "Password berhasil diubah. Silakan login dengan password baru.",
+    });
+  } catch (err) {
+    await connection.rollback();
+    connection.release();
+    console.error("Reset password error:", err.message);
+    return res.status(500).json({ message: "Gagal mereset password." });
+  }
+};
+
 const searchSchool = async (req, res) => {
   try {
     const { query } = req.query;
@@ -280,13 +352,23 @@ const searchSchool = async (req, res) => {
 
     const [schools] = await db.query(
       "SELECT id, nama_sekolah, npsn FROM schools WHERE nama_sekolah LIKE ? LIMIT 10",
-      [`%${query}%`]
+      [`%${query}%`],
     );
 
     return res.json({ schools });
   } catch (err) {
     console.error("Search school error:", err.message);
     return res.status(500).json({ message: "Terjadi kesalahan pada server." });
-  }};
+  }
+};
 
-module.exports = { register, verifyOtp, resendOtp, login, searchSchool };
+// Jangan lupa daftarkan fungsi baru pada module.exports
+module.exports = {
+  register,
+  verifyOtp,
+  resendOtp,
+  login,
+  searchSchool,
+  forgotPassword,
+  resetPassword,
+};

@@ -8,6 +8,7 @@ const authRoutes = require('./routes/authRoutes');
 const reportRoutes = require('./routes/siswaRoutes');
 const bkRoutes = require('./routes/bkRoutes');
 const superadminRoutes = require('./routes/superadminRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -31,9 +32,10 @@ app.get('/', (req, res) => {
 
 // API routes
 app.use('/api/auth', authRoutes);
-app.use('/api/reports', reportRoutes);
+app.use('/api/siswa', reportRoutes);
 app.use('/api/bk', bkRoutes);
 app.use('/api/superadmin', superadminRoutes);
+app.use('/api/adminsekolah', adminRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server RuangAman berjalan di http://localhost:${PORT}`);

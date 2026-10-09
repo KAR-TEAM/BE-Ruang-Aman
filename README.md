@@ -105,3 +105,15 @@ POST /api/auth/login      -> ditolak (403) jika akun belum diverifikasi
 - Upload file bukti (foto/video) — perlu `multer` + storage (lokal/cloud) untuk
   mengisi kolom `bukti_url` secara nyata. Masih placeholder di kode.
 - Rate limiting di endpoint `/login` dan `/reports` untuk mencegah brute force/spam.
+
+
+## Akun
+
+- email = guru2@pendidik.id
+- pass = 33333333
+
+- email = udin@siswa.id
+- pass = udin123
+
+- email = admin1@smkn1.sch.id
+- pass - 123456789
