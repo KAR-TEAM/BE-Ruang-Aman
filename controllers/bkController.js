@@ -30,11 +30,11 @@ const listReports = async (req, res) => {
     const conditions = [];
     const params = [];
 
-    if (status) {
+    if (status && status !== 'Semua') {
       conditions.push('r.status = ?');
       params.push(status);
     }
-    if (priority) {
+    if (priority && priority !== 'Semua') {
       conditions.push('r.priority = ?');
       params.push(priority);
     }
@@ -132,4 +132,67 @@ const addFollowup = async (req, res) => {
   }
 };
 
-module.exports = { dashboardStats, listReports, addFollowup };
+const allSiswa = async (req, res) => {
+  try {
+    const { kelas, search } = req.query;
+    const conditions = ["u.role = 'siswa'"];
+    const params = [];
+
+    if (kelas && kelas !== 'Semua') {
+      conditions.push('s.kelas = ?');
+      params.push(kelas);
+    }
+
+    if (search) {
+      conditions.push('(u.nama LIKE ? OR s.nis LIKE ? OR s.kelas LIKE ?)');
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    }
+
+    const whereClause = `WHERE ${conditions.join(' AND ')}`;
+
+    const [rows] = await db.query(
+      `SELECT 
+        u.id, u.nama, u.email, 
+        s.nis, s.kelas, u.jenis_kelamin,
+        (SELECT COUNT(*) FROM reports r WHERE r.user_id = u.id) AS jumlah_laporan
+      FROM users u
+      LEFT JOIN students s ON u.id = s.user_id
+      ${whereClause}
+      ORDER BY u.nama ASC`,
+      params
+    );
+
+    const formatted = rows.map((siswa) => {
+      const nameParts = (siswa.nama || 'S').trim().split(' ');
+      const inisial = nameParts.length > 1 
+        ? (nameParts[0][0] + nameParts[1][0]).toUpperCase() 
+        : nameParts[0].substring(0, 2).toUpperCase();
+
+      let status = 'Aman';
+      if (siswa.jumlah_laporan >= 3) {
+        status = 'Pendampingan';
+      } else if (siswa.jumlah_laporan >= 1) {
+        status = 'Perlu Perhatian';
+      }
+
+      return {
+        id: siswa.id,
+        nama: siswa.nama || 'Tanpa Nama',
+        nis: siswa.nis || '-',
+        kelas: siswa.kelas || '-',
+        email: siswa.email || '-',
+        jenisKelamin: siswa.jenis_kelamin || 'Laki-laki',
+        laporan: siswa.jumlah_laporan || 0,
+        status: status,
+        inisial: inisial
+      };
+    });
+
+    return res.status(200).json(formatted);
+  } catch (err) {
+    console.error('Get all siswa error:', err.message);
+    return res.status(500).json({ message: 'Gagal mengambil data siswa.' });
+  }
+};
+
+module.exports = { dashboardStats, listReports, addFollowup, allSiswa };

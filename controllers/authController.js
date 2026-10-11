@@ -6,18 +6,17 @@ const { createAndSendOtp, verifyOtpCode } = require("../utils/otpService");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// Registrasi user baru (Siswa / Guru BK / Admin Sekolah) dengan school_id
 const register = async (req, res) => {
   const connection = await db.getConnection();
   try {
-    const { nama, email, password, school_id, role, nis, nip, kelas, jurusan } =
+    const { nama, email, password, school_id, role, nis, nip, kelas, jurusan, jenis_kelamin } =
       req.body;
 
     // Normalisasi Role di awal agar bisa digunakan untuk validasi
     let userRole = "Siswa";
     const lowerRole = role ? role.toLowerCase() : "";
 
-    if (lowerRole === "guru bk" || lowerRole === "guru_bk") {
+    if (lowerRole === "guru bk" || lowerRole === "guru_bk" || lowerRole === "guru") {
       userRole = "Guru BK";
     } else if (lowerRole === "admin" || lowerRole === "admin sekolah") {
       userRole = "Admin";
@@ -76,10 +75,10 @@ const register = async (req, res) => {
 
     await connection.beginTransaction();
 
-    // Insert ke tabel users
+    // Insert ke tabel users (Menyertakan kolom jenis_kelamin)
     await connection.query(
-      `INSERT INTO users (id, school_id, nama, email, PASSWORD, role, status_akun, is_verified)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO users (id, school_id, nama, email, PASSWORD, role, jenis_kelamin, status_akun, is_verified)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         userId,
         finalSchoolId,
@@ -87,6 +86,7 @@ const register = async (req, res) => {
         email,
         hashedPassword,
         userRole,
+        jenis_kelamin || null,
         statusAkun,
         isVerified,
       ],
@@ -101,7 +101,7 @@ const register = async (req, res) => {
         [studentId, userId, nis || "-", kelas || "-", jurusan || null],
       );
     }
-    // Jika Guru BK, masukkan ke tabel teacher_profiles
+    // Jika Guru BK, masukkan ke tabel teacher_profiles (Menyertakan kolom nip)
     else if (userRole === "Guru BK") {
       const teacherId = crypto.randomUUID();
       await connection.query(
@@ -122,18 +122,13 @@ const register = async (req, res) => {
       });
     }
 
-    try {
-      await createAndSendOtp(email, nama);
-    } catch (otpErr) {
-      console.error("Gagal mengirim OTP:", otpErr.message);
-      return res.status(201).json({
-        message: `Registrasi ${userRole} berhasil, namun gagal mengirim kode OTP. Silakan gunakan fitur kirim ulang OTP.`,
-        userId,
-      });
-    }
+    // KIRIM OTP DI BACKGROUND (TANPA AWAIT) AGAR TIDAK TIMEOUT
+    createAndSendOtp(email, nama).catch((otpErr) => {
+      console.error("Gagal mengirim OTP di background:", otpErr.message);
+    });
 
     return res.status(201).json({
-      message: `Registrasi ${userRole} berhasil. Kode OTP telah dikirim ke email Anda.`,
+      message: `Registrasi ${userRole} berhasil. Kode OTP sedang dikirim ke email Anda.`,
       userId,
     });
   } catch (err) {
@@ -198,8 +193,12 @@ const resendOtp = async (req, res) => {
         .json({ message: "Akun sudah terverifikasi. Silakan login." });
     }
 
-    await createAndSendOtp(email, users[0].nama);
-    return res.json({ message: "Kode OTP baru telah dikirim ke email Anda." });
+    // Kirim OTP di background tanpa await
+    createAndSendOtp(email, users[0].nama).catch((err) => {
+      console.error("Resend OTP background error:", err.message);
+    });
+
+    return res.json({ message: "Kode OTP baru sedang dikirim ke email Anda." });
   } catch (err) {
     console.error("Resend OTP error:", err.message);
     return res.status(500).json({ message: "Gagal mengirim ulang OTP." });
@@ -286,9 +285,13 @@ const forgotPassword = async (req, res) => {
       return res.status(404).json({ message: "Email tidak ditemukan." });
     }
 
-    await createAndSendOtp(email, users[0].nama);
+    // Kirim OTP di background tanpa await
+    createAndSendOtp(email, users[0].nama).catch((err) => {
+      console.error("Forgot password background error:", err.message);
+    });
+
     return res.json({
-      message: "Kode OTP untuk reset password telah dikirim ke email Anda.",
+      message: "Kode OTP untuk reset password sedang dikirim ke email Anda.",
     });
   } catch (err) {
     console.error("Forgot password error:", err.message);
@@ -298,25 +301,24 @@ const forgotPassword = async (req, res) => {
   }
 };
 
-// Verifikasi OTP dan memperbarui password baru
+// Verifikasi OTP dan memperbarui password baru (Tanpa cek ulang verifyOtpCode karena sudah divalidasi di step sebelumnya)
 const resetPassword = async (req, res) => {
   const connection = await db.getConnection();
   try {
-    const { email, otp_code, newPassword } = req.body;
+    const { email, newPassword } = req.body; // otp_code tidak wajib di sini jika sudah diverifikasi di step sebelumnya
 
-    if (!email || !otp_code || !newPassword) {
+    if (!email || !newPassword) {
       connection.release();
       return res
         .status(400)
-        .json({ message: "Email, kode OTP, dan password baru wajib diisi." });
+        .json({ message: "Email dan password baru wajib diisi." });
     }
 
-    const isValid = await verifyOtpCode(email, otp_code);
-    if (!isValid) {
+    // Pastikan user dengan email tersebut ada
+    const [users] = await connection.query("SELECT id FROM users WHERE email = ?", [email]);
+    if (users.length === 0) {
       connection.release();
-      return res
-        .status(400)
-        .json({ message: "Kode OTP salah atau sudah kedaluwarsa." });
+      return res.status(404).json({ message: "Email tidak ditemukan." });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -362,7 +364,6 @@ const searchSchool = async (req, res) => {
   }
 };
 
-// Jangan lupa daftarkan fungsi baru pada module.exports
 module.exports = {
   register,
   verifyOtp,

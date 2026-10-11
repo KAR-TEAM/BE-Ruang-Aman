@@ -155,20 +155,35 @@ const createAdminSekolah = async (req, res) => {
       return res.status(400).json({ message: "Semua field wajib diisi." });
     }
 
+    // Cek duplikasi email
+    const [existingUsers] = await connection.query(
+      "SELECT id FROM users WHERE email = ?",
+      [email]
+    );
+    if (existingUsers.length > 0) {
+      connection.release();
+      return res.status(400).json({ message: "Email sudah terdaftar." });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const userId = crypto.randomUUID();
+
+    await connection.beginTransaction();
 
     await connection.query(
       `INSERT INTO users (id, school_id, nama, email, PASSWORD, role, status_akun, is_verified)
        VALUES (?, ?, ?, ?, ?, 'Admin', 'Aktif', 1)`,
-      [userId, sekolah_id, nama, email, hashedPassword],
+      [userId, sekolah_id, nama, email, hashedPassword]
     );
 
+    await connection.commit();
     connection.release();
+
     return res
       .status(201)
       .json({ message: "Akun Admin Sekolah berhasil dibuat.", userId });
   } catch (err) {
+    await connection.rollback();
     connection.release();
     console.error("Create Admin error:", err.message);
     return res.status(500).json({ message: "Terjadi kesalahan pada server." });

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Waktu pembuatan: 09 Okt 2026 pada 10.35
+-- Waktu pembuatan: 11 Okt 2026 pada 07.32
 -- Versi server: 10.4.32-MariaDB
 -- Versi PHP: 8.2.12
 
@@ -43,6 +43,14 @@ CREATE TABLE `followups` (
 --   `guru_id`
 --       `users` -> `id`
 --
+
+--
+-- Dumping data untuk tabel `followups`
+--
+
+INSERT INTO `followups` (`id`, `report_id`, `guru_id`, `catatan`, `tindakan`, `tanggal_penanganan`) VALUES
+('c71d502c-aae6-4870-b7cc-4825ce7b1dec', 'bf4a8b17-634d-4384-978f-3dd74708a5f9', '6fff15ee-0b02-4914-ac16-729a8eed7e14', 'hhh', 'hhh', '2026-10-09 11:19:58'),
+('edc945cf-436a-43c5-b696-f4ebd3bfe44a', 'bf4a8b17-634d-4384-978f-3dd74708a5f9', 'c061cede-d296-40c5-a19d-b179eb35a439', '', '', '2026-10-09 14:19:27');
 
 -- --------------------------------------------------------
 
@@ -89,6 +97,13 @@ CREATE TABLE `reports` (
 --   `user_id`
 --       `users` -> `id`
 --
+
+--
+-- Dumping data untuk tabel `reports`
+--
+
+INSERT INTO `reports` (`id`, `user_id`, `jenis_kejadian`, `kategori_kejadian`, `kronologi`, `tanggal_kejadian`, `waktu_kejadian`, `lokasi`, `anonymous`, `bukti_url`, `priority`, `STATUS`, `created_at`, `updated_at`) VALUES
+('bf4a8b17-634d-4384-978f-3dd74708a5f9', 'cc7380fa-169c-4213-99af-24ab25a50e6d', '', NULL, 'dipukul', '2026-10-09', '22:11:00', 'Kantin', 0, NULL, 'Tinggi', 'SELESAI', '2026-10-09 11:11:53', '2026-10-09 14:19:27');
 
 -- --------------------------------------------------------
 
@@ -140,6 +155,13 @@ CREATE TABLE `students` (
 --       `users` -> `id`
 --
 
+--
+-- Dumping data untuk tabel `students`
+--
+
+INSERT INTO `students` (`id`, `user_id`, `nis`, `jenjang`, `kelas`, `jurusan`, `tahun_masuk`, `nama_wali`, `kontak_wali`) VALUES
+('ed680c5f-7bca-4e0d-afd0-c98707648c5c', 'cc7380fa-169c-4213-99af-24ab25a50e6d', '201208', '', 'XI', 'TKJ', NULL, NULL, NULL);
+
 -- --------------------------------------------------------
 
 --
@@ -163,7 +185,8 @@ CREATE TABLE `teacher_profiles` (
 --
 
 INSERT INTO `teacher_profiles` (`id`, `user_id`, `nip`) VALUES
-('dabc0c71-3940-4ee9-96c2-c7a47d2fa432', '50fc347f-5610-455f-9306-5c9d45c00fe0', '88888888');
+('dabc0c71-3940-4ee9-96c2-c7a47d2fa432', '50fc347f-5610-455f-9306-5c9d45c00fe0', '88888888'),
+('e98f8908-d17e-46ec-aa50-73c26d062942', '6fff15ee-0b02-4914-ac16-729a8eed7e14', '00000003');
 
 -- --------------------------------------------------------
 
@@ -197,9 +220,12 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `school_id`, `nama`, `email`, `PASSWORD`, `role`, `foto_profile`, `status_akun`, `is_verified`, `created_at`, `updated_at`) VALUES
 ('3ab5eb4e-9925-4700-be69-2063e6c3db1e', NULL, 'Khoirin Nisa Amalia', 'nisa@ruangaman.id', '$2a$10$SiDPTNkSFP9.i8mg5uEUJ.EzJaVXkiXgB9N7.jI36G5FKAvxIdv.q', 'Superadmin', NULL, 'Aktif', 1, '2026-09-27 06:35:00', '2026-09-27 06:35:00'),
-('50fc347f-5610-455f-9306-5c9d45c00fe0', 'a64e5c48-9e87-4a35-a5d3-baa38a646d90', 'Guru 2', 'guru2@pendidik.id', '$2a$10$c3oMPQ9Khhv56A2L1RcUQOiXGWXevDpclDhYF0MQcQx5ottims4s.', 'Guru BK', NULL, 'Aktif', 1, '2026-09-28 03:36:31', '2026-09-28 03:37:23'),
+('50fc347f-5610-455f-9306-5c9d45c00fe0', 'a64e5c48-9e87-4a35-a5d3-baa38a646d90', 'Guru 2', 'guru2@pendidik.id', '$2a$10$GqMIQ78YOMEx7JuN2ZrzM.s3bDAwTyaD7Y5kl9xByVuBbI/M3tjM6', 'Guru BK', NULL, 'Aktif', 1, '2026-09-28 03:36:31', '2026-10-09 11:07:05'),
+('6fff15ee-0b02-4914-ac16-729a8eed7e14', '392b443d-a7dd-44a5-ac77-820c521fad2c', 'guru3', 'guru3@pendidik.id', '$2a$10$SD.MjaY8qAWTH2xPLZSVHOdgZapvIiYeh0EPzMUlfkFfAokIyAMB2', 'Guru BK', NULL, 'Aktif', 1, '2026-10-09 10:04:05', '2026-10-09 10:04:38'),
 ('8913531b-f1e7-4b3e-9dc6-71dfb7800857', NULL, 'Aldy Alfiansyah', 'aldyalfiansyah@ruangaman.id', '$2a$10$AOgAnTGdRMc4Mp1dUCULJO3kHRZgixiX8UnDyPrXKRiYqrVQZE/4.', 'Superadmin', NULL, 'Aktif', 1, '2026-09-27 06:41:52', '2026-09-27 06:41:52'),
 ('92ffe476-b476-4819-bc15-b1cd1a685dfa', 'a64e5c48-9e87-4a35-a5d3-baa38a646d90', 'admin 2', 'admin2@sman1.sch.id', '$2a$10$IYHayqeWfWCz53Nr5iqMXuRznPzwzdigkLXeM.N7PuZrrA2CqdVUC', 'Admin', NULL, 'Aktif', 1, '2026-09-28 03:54:27', '2026-09-28 03:54:27'),
+('c061cede-d296-40c5-a19d-b179eb35a439', '392b443d-a7dd-44a5-ac77-820c521fad2c', 'SMKN1', 'admin1@smkn1.sch.id', '$2a$10$dGDkCTrSUZss32m/L4bGCOGOCpmWdTM50W76Z9NNPMbo2XkPPdOe.', 'Admin', NULL, 'Aktif', 1, '2026-10-09 10:32:56', '2026-10-09 10:32:56'),
+('cc7380fa-169c-4213-99af-24ab25a50e6d', '392b443d-a7dd-44a5-ac77-820c521fad2c', 'Udin', 'udin@siswa.id', '$2a$10$ztY9/g2ywCdBVhH/dZh0XO4utjnG4lisppOFaFYjonz/CoC.i9Rfa', 'Siswa', NULL, 'Aktif', 1, '2026-10-09 10:08:33', '2026-10-09 10:09:09'),
 ('f203902a-1600-4912-a16c-9bc3c300123c', 'a64e5c48-9e87-4a35-a5d3-baa38a646d90', 'Admin1', 'admin1@sma1.sch.id', '$2a$10$5S55YMxUSlGdgFihWIdTMuHctAvnvUgWs.EooC5ly3xtj0YfpDGu.', 'Admin', NULL, 'Aktif', 1, '2026-09-27 09:58:27', '2026-09-27 09:58:27'),
 ('f65be8ea-a5c6-4ba9-83c5-822a746b4b25', NULL, 'Reza Sapitra', 'rezasapitra@ruangaman.id', '$2a$10$13pynKUp4zq5.0TT4raFTeYWzAfR2zvu0Ey6tafiVTxBJK/XnmBze', 'Superadmin', NULL, 'Aktif', 1, '2026-09-27 06:33:45', '2026-09-27 06:33:45');
 

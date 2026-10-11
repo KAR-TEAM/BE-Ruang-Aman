@@ -21,7 +21,7 @@ const TINGGI_KEYWORDS = [
   'ancam', 'mengancam', 'ancaman serius', 'pemerasan', 'memeras',
   'kekerasan fisik', 'memukul', 'dipukul', 'ditendang', 'senjata',
   'pelecehan seksual', 'dilecehkan', 'melukai', 'luka parah',
-  'bunuh diri', 'ingin mati', 'menyakiti diri'
+  'bunuh diri', 'ingin mati', 'menyakiti diri' , 'rasisme', 'rasis',
 ];
 
 const SEDANG_KEYWORDS = [
