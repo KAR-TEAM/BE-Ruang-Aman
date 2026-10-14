@@ -37,6 +37,18 @@ app.use('/api/bk', bkRoutes);
 app.use('/api/superadmin', superadminRoutes);
 app.use('/api/adminsekolah', adminRoutes);
 
+app.use((err, req, res, next) => {
+  console.error('Global Error Handler:', err);
+  
+  // Ambil pesan error string yang aman
+  const errorMessage = err.message || (typeof err === 'object' ? JSON.stringify(err) : 'Terjadi kesalahan pada server');
+
+  return res.status(500).json({
+    message: 'Gagal memproses permintaan.',
+    error: errorMessage
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`Server RuangAman berjalan di http://localhost:${PORT}`);
 });

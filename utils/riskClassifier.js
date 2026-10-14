@@ -18,19 +18,23 @@ const JENIS_BASE_LEVEL = {
 
 // Kata kunci yang dipindai dari teks kronologi laporan
 const TINGGI_KEYWORDS = [
-  'ancam', 'mengancam', 'ancaman serius', 'pemerasan', 'memeras',
-  'kekerasan fisik', 'memukul', 'dipukul', 'ditendang', 'senjata',
-  'pelecehan seksual', 'dilecehkan', 'melukai', 'luka parah',
-  'bunuh diri', 'ingin mati', 'menyakiti diri' , 'rasisme', 'rasis',
+  'ancam', 'mengancam', 'ancaman serius', 'awas lu ya', 'gue habisin', 'pemerasan', 'memeras', 'palak', 'dipalak',
+  'kekerasan fisik', 'memukul', 'ditendang', 'didorong', 'dianiaya', 'disiksa', 'luka parah', 'berdarah', 'lebam', 'dicekik', 'dijambak', 'dikeroyok',
+  'senjata', 'sajam', 'benda tajam', 'pisau', 'air keras',
+  'pelecehan seksual', 'dilecehkan', 'meraba', 'bagian sensitif', 'dicium paksa', 'catcalling',
+  'bunuh diri', 'ingin mati', 'menyakiti diri', 'nggak tahan hidup',
+  'rasisme', 'rasis'
 ];
 
 const SEDANG_KEYWORDS = [
-  'bullying berulang', 'terus-terusan', 'sering diejek', 'dihina',
-  'penghinaan', 'diintimidasi', 'intimidasi', 'ancaman ringan', 'dikucilkan'
+  'terus-terusan', 'berulang kali', 'sering banget', 'tiap hari', 'dihina', 'diejek', 'dikatain', 'dihujat', 'julukan buruk',
+  'bodoh', 'goblok', 'bego', 'jelek', 'bau', 'cacat', 'tolol', 'idiot',
+  'diintimidasi', 'intimidasi', 'dikucilkan', 'dijauhi', 'dimusuhi', 'dikeluarkan dari grup',
+  'cyberbullying', 'disebarkan fotonya', 'video disebar', 'doxxing', 'difitnah di sosmed', 'komentar jahat', 'teror'
 ];
 
 const RENDAH_KEYWORDS = [
-  'konflik kecil', 'kesalahpahaman', 'salah paham', 'berdebat'
+  'konflik kecil', 'kesalahpahaman', 'salah paham', 'berdebat', 'cekcok', 'beda pendapat', 'ribut kecil'
 ];
 
 function levelFromKeywords(text) {

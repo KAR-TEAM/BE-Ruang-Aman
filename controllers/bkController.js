@@ -3,6 +3,94 @@ const { db } = require('../config/db');
 
 const VALID_STATUSES = ['BARU', 'SEDANG DITANGANI', 'SELESAI'];
 
+// Mengambil data profil Guru BK yang sedang login// Mengambil profil Guru BK beserta data dari teacher_profiles
+const getProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const [rows] = await db.query(
+      `SELECT 
+        u.id, u.nama, u.email, u.role, u.jenis_kelamin, 
+        s.nama_sekolah, s.npsn, s.jenjang,
+        tp.nip
+      FROM users u
+      LEFT JOIN schools s ON u.school_id = s.id
+      LEFT JOIN teacher_profiles tp ON u.id = tp.user_id
+      WHERE u.id = ?`,
+      [userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Profil pengguna tidak ditemukan.' });
+    }
+
+    const user = rows[0];
+
+    return res.status(200).json({
+      id: user.id,
+      nama: user.nama || 'Guru BK',
+      email: user.email || '-',
+      role: user.role || 'guru bk',
+      jenis_kelamin: user.jenis_kelamin || '-',
+      sekolah: user.nama_sekolah || 'Instansi Sekolah',
+      npsn: user.npsn || '-',
+      jenjang: user.jenjang || '-',
+      nip: user.nip || '-'
+    });
+  } catch (err) {
+    console.error('Get profile error:', err.message);
+    return res.status(500).json({ message: 'Gagal mengambil data profil.' });
+  }
+};
+
+// Memperbarui profil Guru BK & NIP di teacher_profiles
+const updateProfile = async (req, res) => {
+  const connection = await db.getConnection();
+  try {
+    const userId = req.user.id;
+    const { nama, email, jenis_kelamin, nip } = req.body;
+
+    await connection.beginTransaction();
+
+    // Update data utama di tabel users
+    await connection.query(
+      `UPDATE users SET nama = ?, email = ?, jenis_kelamin = ? WHERE id = ?`,
+      [nama, email, jenis_kelamin || null, userId]
+    );
+
+    // Cek apakah data teacher_profiles sudah ada atau belum
+    const [existingTp] = await connection.query(
+      `SELECT id FROM teacher_profiles WHERE user_id = ?`,
+      [userId]
+    );
+
+    if (existingTp.length > 0) {
+      // Update NIP jika sudah ada
+      await connection.query(
+        `UPDATE teacher_profiles SET nip = ? WHERE user_id = ?`,
+        [nip || null, userId]
+      );
+    } else {
+      // Insert NIP baru jika belum ada
+      const profileId = crypto.randomUUID();
+      await connection.query(
+        `INSERT INTO teacher_profiles (id, user_id, nip) VALUES (?, ?, ?)`,
+        [profileId, userId, nip || null]
+      );
+    }
+
+    await connection.commit();
+    connection.release();
+
+    return res.status(200).json({ message: 'Profil berhasil diperbarui.' });
+  } catch (err) {
+    await connection.rollback();
+    connection.release();
+    console.error('Update profile error:', err.message);
+    return res.status(500).json({ message: 'Gagal memperbarui profil.' });
+  }
+};
+
 // Statistik untuk dashboard Guru BK
 const dashboardStats = async (req, res) => {
   try {
@@ -22,8 +110,6 @@ const dashboardStats = async (req, res) => {
   }
 };
 
-// Guru BK melihat semua laporan, dengan filter opsional ?status= & ?priority=
-// Identitas siswa disembunyikan di response jika laporan bersifat anonim.
 const listReports = async (req, res) => {
   try {
     const { status, priority } = req.query;
@@ -55,26 +141,34 @@ const listReports = async (req, res) => {
       params
     );
 
-    const formatted = rows.map((rep) => ({
-      id: rep.id,
-      jenis: rep.jenis,
-      kronologi: rep.kronologi,
-      lokasi: rep.lokasi,
-      tanggal_kejadian: rep.tanggal_kejadian,
-      waktu_kejadian: rep.waktu_kejadian,
-      bukti_url: rep.bukti_url,
-      anonymous: Boolean(rep.anonymous),
-      priority: rep.priority,
-      status: rep.status,
-      created_at: rep.created_at,
-      pelapor: rep.anonymous
-        ? { nama: 'Anonim', email: null, nis: null, kelas: null }
-        : {
-            nama: rep.nama || 'Unknown',
-            email: rep.email || null,
-            nis: rep.nis || null,
-            kelas: rep.kelas || null
-          }
+    const formatted = await Promise.all(rows.map(async (rep) => {
+      const [followups] = await db.query(
+        `SELECT id, catatan, tindakan FROM followups WHERE report_id = ?`,
+        [rep.id]
+      );
+
+      return {
+        id: rep.id,
+        jenis: rep.jenis,
+        kronologi: rep.kronologi,
+        lokasi: rep.lokasi,
+        tanggal_kejadian: rep.tanggal_kejadian,
+        waktu_kejadian: rep.waktu_kejadian,
+        bukti_url: rep.bukti_url,
+        anonymous: Boolean(rep.anonymous),
+        priority: rep.priority,
+        status: rep.status,
+        created_at: rep.created_at,
+        pelapor: rep.anonymous
+          ? { nama: 'Anonim', email: null, nis: null, kelas: null }
+          : {
+              nama: rep.nama || 'Unknown',
+              email: rep.email || null,
+              nis: rep.nis || null,
+              kelas: rep.kelas || null
+            },
+        followups: followups
+      };
     }));
 
     res.json(formatted);
@@ -84,7 +178,6 @@ const listReports = async (req, res) => {
   }
 };
 
-// Guru BK menambahkan catatan tindak lanjut & (opsional) mengubah status laporan
 const addFollowup = async (req, res) => {
   const connection = await db.getConnection();
   try {
@@ -195,4 +288,4 @@ const allSiswa = async (req, res) => {
   }
 };
 
-module.exports = { dashboardStats, listReports, addFollowup, allSiswa };
+module.exports = { getProfile, updateProfile, dashboardStats, listReports, addFollowup, allSiswa };

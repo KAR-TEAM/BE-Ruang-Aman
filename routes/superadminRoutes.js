@@ -19,8 +19,8 @@ router.get('/schools', verifyToken, authorizeRole('Superadmin'), getSchools);
 router.post('/schools', verifyToken, authorizeRole('Superadmin'), createSchool);
 router.put('/schools/:id', verifyToken, authorizeRole('Superadmin'), updateSchool);
 router.delete('/schools/:id', verifyToken, authorizeRole('Superadmin'), deleteSchool);
-
 router.get('/search', verifyToken, authorizeRole('Superadmin'), searchSchool);
+
 
 router.post('/admin-schools', verifyToken, authorizeRole('Superadmin'), createAdminSekolah);
 router.get('/users', verifyToken, authorizeRole('Superadmin'), getAllUsersByRole);

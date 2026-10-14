@@ -55,7 +55,7 @@ const getAllUsers = async (req, res) => {
 
     const params = [schoolId];
     if (search) {
-      query += " AND name LIKE ?";
+      query += " AND nama LIKE ?";
       params.push(`%${search}%`);
     }
     if (role) {
@@ -83,26 +83,30 @@ const getAllReports = async (req, res) => {
     const userSchoolId = req.user.school_id;
 
     const query = `
-  SELECT 
-    r.id AS report_id, 
-    r.status, 
-    r.tanggal_kejadian AS tanggal, 
-    u.nama AS nama_pelapor,
-    u.email AS email_pelapor
-    FROM reports r
-    JOIN users u ON r.user_id = u.id
-    WHERE u.school_id = ?
-`;
+      SELECT 
+        r.id AS report_id, 
+        r.status, 
+        r.jenis_kejadian,
+        r.priority,
+        r.lokasi,
+        r.waktu_kejadian,
+        r.kronologi,
+        r.tanggal_kejadian AS tanggal, 
+        u.nama AS nama_pelapor,
+        u.email AS email_pelapor
+      FROM reports r
+      JOIN users u ON r.user_id = u.id
+      WHERE u.school_id = ?
+    `;
     const [reports] = await db.query(query, [userSchoolId]);
 
     res.json(reports);
   } catch (error) {
     console.error("Error getAllReports:", error.message);
-    res
-      .status(500)
-      .json({ error: "gagal menghubungkan reports", details: error.message });
+    res.status(500).json({ error: "gagal menghubungkan reports", details: error.message });
   }
 };
+
 
 const deleteUser = async (req, res) => {
   try {
@@ -118,4 +122,72 @@ const deleteUser = async (req, res) => {
   }
 };
 
-module.exports = { getAllUsers, StatsDashboard, getAllReports, deleteUser };
+const getAdminProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const schoolId = req.user.school_id;
+
+    // Ambil data admin sekaligus data sekolah terkait via JOIN
+    const [result] = await db.query(
+      `SELECT u.id, u.nama, u.email, u.role, u.school_id, 
+              s.nama_sekolah, s.jenjang, s.npsn, s.alamat 
+       FROM users u 
+       LEFT JOIN schools s ON u.school_id = s.id 
+       WHERE u.id = ?`,
+      [userId]
+    );
+
+    if (result.length === 0) {
+      return res.status(404).json({ error: "Profil admin tidak ditemukan" });
+    }
+
+    res.json({
+      message: "Berhasil memuat profil admin",
+      data: result[0],
+    });
+  } catch (error) {
+    console.error("Error getAdminProfile:", error.message);
+    res.status(500).json({ error: "Gagal memuat profil admin", details: error.message });
+  }
+};
+
+const updateAdminProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const schoolId = req.user.school_id;
+    const { nama, jenjang, npsn, alamat } = req.body;
+
+    // 1. Update nama admin di tabel users jika dikirim
+    if (nama) {
+      await db.query("UPDATE users SET nama = ? WHERE id = ?", [nama, userId]);
+    }
+
+    // 2. Update data sekolah (jenjang, npsn, alamat) di tabel schools berdasarkan school_id
+    if (schoolId) {
+      await db.query(
+        "UPDATE schools SET jenjang = ?, npsn = ?, alamat = ? WHERE id = ?",
+        [jenjang, npsn, alamat, schoolId]
+      );
+    }
+
+    // Ambil data gabungan terbaru setelah di-update
+    const [updated] = await db.query(
+      `SELECT u.id, u.nama, u.email, u.role, u.school_id, 
+              s.nama_sekolah, s.jenjang, s.npsn, s.alamat 
+       FROM users u 
+       LEFT JOIN schools s ON u.school_id = s.id 
+       WHERE u.id = ?`,
+      [userId]
+    );
+
+    res.json({
+      message: "Profil berhasil diperbarui",
+      data: updated[0]
+    });
+  } catch (error) {
+    console.error("Error updateAdminProfile:", error.message);
+    res.status(500).json({ error: "Gagal memperbarui profil", details: error.message });
+  }
+};
+
+module.exports = { getAllUsers, StatsDashboard, getAllReports, deleteUser, updateAdminProfile, getAdminProfile };

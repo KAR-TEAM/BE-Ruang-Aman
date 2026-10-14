@@ -10,6 +10,9 @@ const getSchoolStats = async (req, res) => {
     const [bkRes] = await connection.query("SELECT COUNT(*) AS total_guru_bk FROM users WHERE LOWER(role) = 'guru bk' OR LOWER(role) = 'guru_bk'");
     const [siswaRes] = await connection.query("SELECT COUNT(*) AS total_siswa FROM users WHERE LOWER(role) = 'siswa'");
     
+    // TAMBAHAN: Hitung total admin sekolah
+    const [adminRes] = await connection.query("SELECT COUNT(*) AS total_admin FROM users WHERE LOWER(role) = 'admin'");
+    
     connection.release();
 
     return res.status(200).json({
@@ -18,6 +21,7 @@ const getSchoolStats = async (req, res) => {
       total_users: usersRes[0]?.total_users || 0,
       total_guru_bk: bkRes[0]?.total_guru_bk || 0,
       total_siswa: siswaRes[0]?.total_siswa || 0,
+      total_admin: adminRes[0]?.total_admin || 0, // Mengirim key total_admin
     });
   } catch (err) {
     connection.release();
@@ -26,10 +30,58 @@ const getSchoolStats = async (req, res) => {
   }
 };
 
+const getAllUsersByRole = async (req, res) => {
+  try {
+    const { role, query, page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
+
+    let sql = `
+      SELECT u.id, u.nama, u.email, u.role, u.status_akun, s.nama_sekolah 
+      FROM users u 
+      LEFT JOIN schools s ON u.school_id = s.id 
+      WHERE 1=1
+    `;
+    let countSql = `SELECT COUNT(*) as total FROM users u WHERE 1=1`;
+    let params = [];
+
+    if (role && role.trim() !== "") {
+      sql += " AND LOWER(u.role) = LOWER(?)";
+      countSql += " AND LOWER(u.role) = LOWER(?)";
+      params.push(role);
+    }
+
+    if (query && query.trim() !== "") {
+      sql += " AND (u.nama LIKE ? OR u.email LIKE ?)";
+      countSql += " AND (u.nama LIKE ? OR u.email LIKE ?)";
+      params.push(`%${query}%`, `%${query}%`);
+    }
+
+    // Tambahkan limit dan offset untuk pagination
+    sql += " LIMIT ? OFFSET ?";
+    params.push(Number(limit), Number(offset));
+
+    const [users] = await db.query(sql, params);
+    const [totalRes] = await db.query(countSql, params.slice(0, params.length - 2)); // Ambil total data asli untuk hitung halaman
+
+    return res.status(200).json({
+      message: "Berhasil mengambil data user.",
+      data: users,
+      pagination: {
+        totalItems: totalRes[0].total,
+        currentPage: Number(page),
+        totalPages: Math.ceil(totalRes[0].total / limit),
+      }
+    });
+  } catch (err) {
+    console.error("Get Users error:", err.message);
+    return res.status(500).json({ message: "Terjadi kesalahan pada server." });
+  }
+};
+
 const getSchools = async (req, res) => {
   try {
     const [schools] = await db.query(
-      "SELECT id, nama_sekolah, alamat, npsn FROM schools",
+      "SELECT id, nama_sekolah, alamat, npsn, jenjang FROM schools",
     );
     return res.status(200).json({ message: "Berhasil.", data: schools });
   } catch (err) {
@@ -38,43 +90,45 @@ const getSchools = async (req, res) => {
   }
 };
 
-// FITUR BARU: Ambil data Admin Sekolah, Guru BK, dan Siswa
-const getAllUsersByRole = async (req, res) => {
-  try {
-    const { role } = req.query; // 'Admin', 'Guru BK', atau 'Siswa'
-    let query = `
-      SELECT u.id, u.nama, u.email, u.role, u.status_akun, s.nama_sekolah 
-      FROM users u 
-      LEFT JOIN schools s ON u.school_id = s.id 
-    `;
-    let params = [];
-    if (role) {
-      query += " WHERE LOWER(u.role) = LOWER(?)";
-      params.push(role);
-    }
-
-    const [users] = await db.query(query, params);
-    return res.status(200).json({ message: "Berhasil mengambil data user.", data: users });
-  } catch (err) {
-    console.error("Get Users error:", err.message);
-    return res.status(500).json({ message: "Terjadi kesalahan pada server." });
-  }
-};
-  
-// FITUR BARU: Edit Sekolah
 const updateSchool = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nama_sekolah, alamat, npsn } = req.body;
+    const { nama_sekolah, alamat, npsn, jenjang } = req.body;
 
     await db.query(
-      "UPDATE schools SET nama_sekolah = ?, alamat = ?, npsn = ? WHERE id = ?",
-      [nama_sekolah, alamat, npsn, id],
+      "UPDATE schools SET nama_sekolah = ?, alamat = ?, npsn = ?, jenjang = ? WHERE id = ?",
+      [nama_sekolah, alamat || null, npsn || null, jenjang || null, id],
     );
 
     return res.json({ message: "Data sekolah berhasil diperbarui." });
   } catch (err) {
     console.error("Update school error:", err.message);
+    return res.status(500).json({ message: "Terjadi kesalahan pada server." });
+  }
+};
+
+const createSchool = async (req, res) => {
+  const connection = await db.getConnection();
+  try {
+    const { nama_sekolah, alamat, npsn, jenjang } = req.body;
+    if (!nama_sekolah) {
+      connection.release();
+      return res.status(400).json({ message: "Nama sekolah wajib diisi." });
+    }
+
+    const schoolId = crypto.randomUUID();
+    await connection.query(
+      `INSERT INTO schools (id, nama_sekolah, alamat, npsn, jenjang) VALUES (?, ?, ?, ?, ?)`,
+      [schoolId, nama_sekolah, alamat || null, npsn || null, jenjang || null],
+    );
+
+    connection.release();
+    return res
+      .status(201)
+      .json({ message: "Sekolah berhasil ditambahkan.", schoolId });
+  } catch (err) {
+    connection.release();
+    console.error("Create School error:", err.message);
     return res.status(500).json({ message: "Terjadi kesalahan pada server." });
   }
 };
@@ -120,32 +174,6 @@ const deleteUser = async (req, res) => {
   }
 };
 
-const createSchool = async (req, res) => {
-  const connection = await db.getConnection();
-  try {
-    const { nama_sekolah, alamat, npsn } = req.body;
-    if (!nama_sekolah) {
-      connection.release();
-      return res.status(400).json({ message: "Nama sekolah wajib diisi." });
-    }
-
-    const schoolId = crypto.randomUUID();
-    await connection.query(
-      `INSERT INTO schools (id, nama_sekolah, alamat, npsn) VALUES (?, ?, ?, ?)`,
-      [schoolId, nama_sekolah, alamat || null, npsn || null],
-    );
-
-    connection.release();
-    return res
-      .status(201)
-      .json({ message: "Sekolah berhasil ditambahkan.", schoolId });
-  } catch (err) {
-    connection.release();
-    console.error("Create School error:", err.message);
-    return res.status(500).json({ message: "Terjadi kesalahan pada server." });
-  }
-};
-
 const createAdminSekolah = async (req, res) => {
   const connection = await db.getConnection();
   try {
@@ -158,7 +186,7 @@ const createAdminSekolah = async (req, res) => {
     // Cek duplikasi email
     const [existingUsers] = await connection.query(
       "SELECT id FROM users WHERE email = ?",
-      [email]
+      [email],
     );
     if (existingUsers.length > 0) {
       connection.release();
@@ -173,7 +201,7 @@ const createAdminSekolah = async (req, res) => {
     await connection.query(
       `INSERT INTO users (id, school_id, nama, email, PASSWORD, role, status_akun, is_verified)
        VALUES (?, ?, ?, ?, ?, 'Admin', 'Aktif', 1)`,
-      [userId, sekolah_id, nama, email, hashedPassword]
+      [userId, sekolah_id, nama, email, hashedPassword],
     );
 
     await connection.commit();
@@ -192,22 +220,31 @@ const createAdminSekolah = async (req, res) => {
 
 const searchSchool = async (req, res) => {
   try {
-    const { query } = req.query;
+    const { query, jenjang } = req.query;
 
-    if (!query) {
-      return res.status(400).json({ message: "Query pencarian wajib diisi." });
+    let sql =
+      "SELECT id, nama_sekolah, alamat, npsn, jenjang FROM schools WHERE 1=1";
+    let params = [];
+
+    if (query && query.trim() !== "") {
+      sql += " AND (nama_sekolah LIKE ? OR npsn LIKE ?)";
+      params.push(`%${query}%`, `%${query}%`);
     }
 
-    const [schools] = await db.query(
-      "SELECT id, nama_sekolah, npsn FROM schools WHERE nama_sekolah LIKE ? LIMIT 10",
-      [`%${query}%`]
-    );
+    if (jenjang && jenjang.trim() !== "") {
+      sql += " AND jenjang = ?";
+      params.push(jenjang);
+    }
 
-    return res.json({ schools });
+    sql += " LIMIT 50";
+
+    const [schools] = await db.query(sql, params);
+    return res.status(200).json({ message: "Berhasil.", data: schools });
   } catch (err) {
     console.error("Search school error:", err.message);
     return res.status(500).json({ message: "Terjadi kesalahan pada server." });
-  }};
+  }
+};
 
 module.exports = {
   createAdminSekolah,
