@@ -1,14 +1,16 @@
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // Memverifikasi token JWT dari header Authorization
 const verifyToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
 
   if (!token) {
-    return res.status(401).json({ message: 'Akses ditolak. Token tidak ditemukan.' });
+    return res
+      .status(401)
+      .json({ message: "Akses ditolak. Token tidak ditemukan." });
   }
 
   try {
@@ -16,7 +18,9 @@ const verifyToken = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (error) {
-    return res.status(403).json({ message: 'Token tidak valid atau kedaluwarsa.' });
+    return res
+      .status(403)
+      .json({ message: "Token tidak valid atau kedaluwarsa." });
   }
 };
 
@@ -28,7 +32,9 @@ const authorizeRole = (...allowedRoles) => {
     const userRole = req.user?.role?.toLowerCase();
 
     if (!req.user || !normalizedRoles.includes(userRole)) {
-      return res.status(403).json({ message: 'Akses ditolak. Anda tidak memiliki izin.' });
+      return res
+        .status(403)
+        .json({ message: "Akses ditolak. Anda tidak memiliki izin." });
     }
     next();
   };

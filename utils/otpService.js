@@ -2,13 +2,11 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { db } = require('../config/db');
 
-// Transporter SMTP. Bisa pakai Gmail (dengan App Password), atau SMTP provider
-// lain (Mailtrap untuk testing, Zoho, provider hosting, dst) — tinggal ganti
-// nilai di .env, kode ini gak perlu diubah.
+
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: parseInt(process.env.SMTP_PORT || '587', 10),
-  secure: process.env.SMTP_SECURE === 'true', // true untuk port 465, false untuk 587/25
+  secure: process.env.SMTP_SECURE === 'true', 
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS

@@ -11,12 +11,9 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: async (req, file) => {
-    // Ambil data nama dan tanggal dari req.body yang dikirim Flutter
-    // Berikan fallback jika kosong
     let namaPelapor = req.body.nama || 'siswa';
     let tanggalKejadian = req.body.tanggal_kejadian || new Date().toISOString().slice(0, 10);
 
-    // Bersihkan spasi atau karakter khusus pada nama agar aman untuk URL file
     namaPelapor = namaPelapor.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
     
     // Format akhir: laporan_nama_pelapor_tanggal_timestampunik

@@ -5,28 +5,40 @@ const { db } = require("../config/db");
 const getSchoolStats = async (req, res) => {
   const connection = await db.getConnection();
   try {
-    const [schoolsRes] = await connection.query("SELECT COUNT(*) AS total_sekolah FROM schools");
-    const [usersRes] = await connection.query("SELECT COUNT(*) AS total_users FROM users");
-    const [bkRes] = await connection.query("SELECT COUNT(*) AS total_guru_bk FROM users WHERE LOWER(role) = 'guru bk' OR LOWER(role) = 'guru_bk'");
-    const [siswaRes] = await connection.query("SELECT COUNT(*) AS total_siswa FROM users WHERE LOWER(role) = 'siswa'");
-    
-    // TAMBAHAN: Hitung total admin sekolah
-    const [adminRes] = await connection.query("SELECT COUNT(*) AS total_admin FROM users WHERE LOWER(role) = 'admin'");
-    
+    const [schoolsRes] = await connection.query(
+      "SELECT COUNT(*) AS total_sekolah FROM schools",
+    );
+    const [usersRes] = await connection.query(
+      "SELECT COUNT(*) AS total_users FROM users",
+    );
+    const [bkRes] = await connection.query(
+      "SELECT COUNT(*) AS total_guru_bk FROM users WHERE LOWER(role) = 'guru bk' OR LOWER(role) = 'guru_bk'",
+    );
+    const [siswaRes] = await connection.query(
+      "SELECT COUNT(*) AS total_siswa FROM users WHERE LOWER(role) = 'siswa'",
+    );
+    const [adminRes] = await connection.query(
+      "SELECT COUNT(*) AS total_admin FROM users WHERE LOWER(role) = 'admin'",
+    );
+
     connection.release();
 
     return res.status(200).json({
-      message: "Berhasil mengambil statistik.",
+      message: "Berhasil memuat data statistik.",
       total_sekolah: schoolsRes[0]?.total_sekolah || 0,
       total_users: usersRes[0]?.total_users || 0,
       total_guru_bk: bkRes[0]?.total_guru_bk || 0,
       total_siswa: siswaRes[0]?.total_siswa || 0,
-      total_admin: adminRes[0]?.total_admin || 0, // Mengirim key total_admin
+      total_admin: adminRes[0]?.total_admin || 0,
     });
   } catch (err) {
     connection.release();
-    console.error("Get School Stats error:", err.message);
-    return res.status(500).json({ message: "Terjadi kesalahan pada server." });
+    return res
+      .status(500)
+      .json({
+        message:
+          "Terjadi kendala pada sistem. Silakan coba beberapa saat lagi.",
+      });
   }
 };
 
@@ -56,25 +68,31 @@ const getAllUsersByRole = async (req, res) => {
       params.push(`%${query}%`, `%${query}%`);
     }
 
-    // Tambahkan limit dan offset untuk pagination
     sql += " LIMIT ? OFFSET ?";
     params.push(Number(limit), Number(offset));
 
     const [users] = await db.query(sql, params);
-    const [totalRes] = await db.query(countSql, params.slice(0, params.length - 2)); // Ambil total data asli untuk hitung halaman
+    const [totalRes] = await db.query(
+      countSql,
+      params.slice(0, params.length - 2),
+    );
 
     return res.status(200).json({
-      message: "Berhasil mengambil data user.",
+      message: "Berhasil mengambil data pengguna.",
       data: users,
       pagination: {
         totalItems: totalRes[0].total,
         currentPage: Number(page),
         totalPages: Math.ceil(totalRes[0].total / limit),
-      }
+      },
     });
   } catch (err) {
-    console.error("Get Users error:", err.message);
-    return res.status(500).json({ message: "Terjadi kesalahan pada server." });
+    return res
+      .status(500)
+      .json({
+        message:
+          "Terjadi kendala pada sistem. Silakan coba beberapa saat lagi.",
+      });
   }
 };
 
@@ -83,10 +101,16 @@ const getSchools = async (req, res) => {
     const [schools] = await db.query(
       "SELECT id, nama_sekolah, alamat, npsn, jenjang FROM schools",
     );
-    return res.status(200).json({ message: "Berhasil.", data: schools });
+    return res
+      .status(200)
+      .json({ message: "Berhasil memuat daftar sekolah.", data: schools });
   } catch (err) {
-    console.error("Get Schools error:", err.message);
-    return res.status(500).json({ message: "Terjadi kesalahan pada server." });
+    return res
+      .status(500)
+      .json({
+        message:
+          "Terjadi kendala pada sistem. Silakan coba beberapa saat lagi.",
+      });
   }
 };
 
@@ -100,10 +124,14 @@ const updateSchool = async (req, res) => {
       [nama_sekolah, alamat || null, npsn || null, jenjang || null, id],
     );
 
-    return res.json({ message: "Data sekolah berhasil diperbarui." });
+    return res.json({ message: "Informasi sekolah berhasil diperbarui." });
   } catch (err) {
-    console.error("Update school error:", err.message);
-    return res.status(500).json({ message: "Terjadi kesalahan pada server." });
+    return res
+      .status(500)
+      .json({
+        message:
+          "Terjadi kendala pada sistem. Silakan coba beberapa saat lagi.",
+      });
   }
 };
 
@@ -125,27 +153,33 @@ const createSchool = async (req, res) => {
     connection.release();
     return res
       .status(201)
-      .json({ message: "Sekolah berhasil ditambahkan.", schoolId });
+      .json({ message: "Sekolah baru berhasil ditambahkan.", schoolId });
   } catch (err) {
     connection.release();
-    console.error("Create School error:", err.message);
-    return res.status(500).json({ message: "Terjadi kesalahan pada server." });
+    return res
+      .status(500)
+      .json({
+        message:
+          "Terjadi kendala pada sistem. Silakan coba beberapa saat lagi.",
+      });
   }
 };
 
-// FITUR BARU: Delete Sekolah
 const deleteSchool = async (req, res) => {
   try {
     const { id } = req.params;
     await db.query("DELETE FROM schools WHERE id = ?", [id]);
-    return res.json({ message: "Sekolah berhasil dihapus." });
+    return res.json({ message: "Data sekolah berhasil dihapus." });
   } catch (err) {
-    console.error("Delete school error:", err.message);
-    return res.status(500).json({ message: "Terjadi kesalahan pada server." });
+    return res
+      .status(500)
+      .json({
+        message:
+          "Terjadi kendala pada sistem. Silakan coba beberapa saat lagi.",
+      });
   }
 };
 
-// FITUR BARU: Edit Admin (User)
 const updateAdmin = async (req, res) => {
   try {
     const { id } = req.params;
@@ -155,22 +189,31 @@ const updateAdmin = async (req, res) => {
       "UPDATE users SET nama = ?, email = ? WHERE id = ? AND role = 'Admin'",
       [nama, email, id],
     );
-    return res.json({ message: "Data Admin berhasil diperbarui." });
+    return res.json({
+      message: "Informasi pengelola sekolah berhasil diperbarui.",
+    });
   } catch (err) {
-    console.error("Update admin error:", err.message);
-    return res.status(500).json({ message: "Terjadi kesalahan pada server." });
+    return res
+      .status(500)
+      .json({
+        message:
+          "Terjadi kendala pada sistem. Silakan coba beberapa saat lagi.",
+      });
   }
 };
 
-// FITUR BARU: Delete Admin / User
 const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
     await db.query("DELETE FROM users WHERE id = ?", [id]);
-    return res.json({ message: "User berhasil dihapus." });
+    return res.json({ message: "Akun pengguna berhasil dihapus." });
   } catch (err) {
-    console.error("Delete user error:", err.message);
-    return res.status(500).json({ message: "Terjadi kesalahan pada server." });
+    return res
+      .status(500)
+      .json({
+        message:
+          "Terjadi kendala pada sistem. Silakan coba beberapa saat lagi.",
+      });
   }
 };
 
@@ -180,17 +223,20 @@ const createAdminSekolah = async (req, res) => {
     const { nama, email, password, sekolah_id } = req.body;
     if (!nama || !email || !password || !sekolah_id) {
       connection.release();
-      return res.status(400).json({ message: "Semua field wajib diisi." });
+      return res
+        .status(400)
+        .json({ message: "Semua data formulir wajib diisi." });
     }
 
-    // Cek duplikasi email
     const [existingUsers] = await connection.query(
       "SELECT id FROM users WHERE email = ?",
       [email],
     );
     if (existingUsers.length > 0) {
       connection.release();
-      return res.status(400).json({ message: "Email sudah terdaftar." });
+      return res
+        .status(400)
+        .json({ message: "Alamat email ini sudah terdaftar." });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -209,12 +255,16 @@ const createAdminSekolah = async (req, res) => {
 
     return res
       .status(201)
-      .json({ message: "Akun Admin Sekolah berhasil dibuat.", userId });
+      .json({ message: "Akun admin sekolah berhasil dibuat.", userId });
   } catch (err) {
     await connection.rollback();
     connection.release();
-    console.error("Create Admin error:", err.message);
-    return res.status(500).json({ message: "Terjadi kesalahan pada server." });
+    return res
+      .status(500)
+      .json({
+        message:
+          "Terjadi kendala pada sistem. Silakan coba beberapa saat lagi.",
+      });
   }
 };
 
@@ -241,8 +291,12 @@ const searchSchool = async (req, res) => {
     const [schools] = await db.query(sql, params);
     return res.status(200).json({ message: "Berhasil.", data: schools });
   } catch (err) {
-    console.error("Search school error:", err.message);
-    return res.status(500).json({ message: "Terjadi kesalahan pada server." });
+    return res
+      .status(500)
+      .json({
+        message:
+          "Terjadi kendala pada sistem. Silakan coba beberapa saat lagi.",
+      });
   }
 };
 
