@@ -29,7 +29,7 @@ const register = async (req, res) => {
     //     message:
     //       "Pendaftaran wajib menggunakan email sekolah (.sch.id) atau Gmail (gmail.com).",
     //   });
-    // }
+    // }a
 
     let userRole = "Siswa";
     const lowerRole = role ? role.toLowerCase() : "";

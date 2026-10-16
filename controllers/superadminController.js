@@ -220,12 +220,16 @@ const deleteUser = async (req, res) => {
 const createAdminSekolah = async (req, res) => {
   const connection = await db.getConnection();
   try {
-    const { nama, email, password, school_id } = req.body;
+    const { nama, email, password } = req.body;
+    
+    // Tangkap school_id atau sekolah_id dari frontend
+    const school_id = req.body.school_id || req.body.sekolah_id;
+
     if (!nama || !email || !password || !school_id) {
       connection.release();
       return res
         .status(400)
-        .json({ message: "Semua data formulir wajib diisi." });
+        .json({ message: "Semua data formulir dan sekolah wajib diisi." });
     }
 
     const [existingUsers] = await connection.query(
@@ -259,11 +263,11 @@ const createAdminSekolah = async (req, res) => {
   } catch (err) {
     await connection.rollback();
     connection.release();
+    console.error("Error createAdminSekolah:", err);
     return res
       .status(500)
       .json({
-        message:
-          "Terjadi kendala pada sistem. Silakan coba beberapa saat lagi.",
+        message: "Terjadi kendala pada sistem. Silakan coba beberapa saat lagi.",
       });
   }
 };
