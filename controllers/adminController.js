@@ -120,21 +120,41 @@ const getAllReports = async (req, res) => {
 };
 
 const deleteUser = async (req, res) => {
+  const connection = await db.getConnection();
   try {
     const { id } = req.params;
     const school_id = req.user.school_id;
-    await db.query("DELETE FROM users WHERE id = ? AND school_id = ?", [
+
+    // Pastikan user yang dihapus benar-benar ada dan berada di sekolah yang sama
+    const [users] = await connection.query(
+      "SELECT id FROM users WHERE id = ? AND school_id = ?",
+      [id, school_id]
+    );
+
+    if (users.length === 0) {
+      connection.release();
+      return res.status(404).json({ message: "Pengguna tidak ditemukan." });
+    }
+
+    await connection.beginTransaction();
+
+    // Hapus user
+    await connection.query("DELETE FROM users WHERE id = ? AND school_id = ?", [
       id,
       school_id,
     ]);
+
+    await connection.commit();
+    connection.release();
+
     return res.status(200).json({ message: "Akun pengguna berhasil dihapus." });
   } catch (error) {
-    return res
-      .status(500)
-      .json({
-        message:
-          "Terjadi kendala pada sistem. Silakan coba beberapa saat lagi.",
-      });
+    await connection.rollback();
+    connection.release();
+    console.error("Error deleting user:", error);
+    return res.status(500).json({
+      message: "Gagal menghapus pengguna. Akun mungkin memiliki data terkait di sistem.",
+    });
   }
 };
 
