@@ -23,13 +23,13 @@ const register = async (req, res) => {
     } = req.body;
 
     const cleanEmail = email ? email.trim().toLowerCase() : "";
-    if (!cleanEmail.endsWith(".sch.id") || !cleanEmail.endsWith("gmail.com")) {
-      connection.release();
-      return res.status(400).json({
-        message:
-          "Pendaftaran wajib menggunakan email sekolah (.sch.id) atau Gmail (gmail.com).",
-      });
-    }
+    // if (!cleanEmail.endsWith(".sch.id") || !cleanEmail.endsWith("gmail.com")) {
+    //   connection.release();
+    //   return res.status(400).json({
+    //     message:
+    //       "Pendaftaran wajib menggunakan email sekolah (.sch.id) atau Gmail (gmail.com).",
+    //   });
+    // }
 
     let userRole = "Siswa";
     const lowerRole = role ? role.toLowerCase() : "";
