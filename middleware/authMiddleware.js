@@ -32,7 +32,7 @@ const authorizeRole = (...allowedRoles) => {
     const userRole = req.user?.role?.toLowerCase();
 
     if (!req.user || !normalizedRoles.includes(userRole)) {
-      return res
+      return resq
         .status(403)
         .json({ message: "Akses ditolak. Anda tidak memiliki izin." });
     }

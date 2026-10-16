@@ -23,11 +23,11 @@ const register = async (req, res) => {
     } = req.body;
 
     const cleanEmail = email ? email.trim().toLowerCase() : "";
-    if (!cleanEmail.endsWith(".sch.id")) {
+    if (!cleanEmail.endsWith(".sch.id") || !cleanEmail.endsWith(".gmail.com")) {
       connection.release();
       return res.status(400).json({
         message:
-          "Pendaftaran wajib menggunakan email sekolah yang berakhiran .sch.id",
+          "Pendaftaran wajib menggunakan email sekolah (.sch.id) atau Gmail (.gmail.com).",
       });
     }
 
@@ -68,11 +68,9 @@ const register = async (req, res) => {
       );
       if (schools.length === 0) {
         connection.release();
-        return res
-          .status(400)
-          .json({
-            message: "Sekolah yang dipilih tidak ditemukan dalam sistem.",
-          });
+        return res.status(400).json({
+          message: "Sekolah yang dipilih tidak ditemukan dalam sistem.",
+        });
       }
     }
 
@@ -148,12 +146,9 @@ const register = async (req, res) => {
   } catch (err) {
     await connection.rollback();
     connection.release();
-    return res
-      .status(500)
-      .json({
-        message:
-          "Terjadi kendala pada sistem. Silakan coba beberapa saat lagi.",
-      });
+    return res.status(500).json({
+      message: "Terjadi kendala pada sistem. Silakan coba beberapa saat lagi.",
+    });
   }
 };
 
@@ -183,12 +178,9 @@ const verifyOtp = async (req, res) => {
       message: "Verifikasi berhasil. Akun Anda sudah aktif, silakan masuk.",
     });
   } catch (err) {
-    return res
-      .status(500)
-      .json({
-        message:
-          "Terjadi kendala pada sistem. Silakan coba beberapa saat lagi.",
-      });
+    return res.status(500).json({
+      message: "Terjadi kendala pada sistem. Silakan coba beberapa saat lagi.",
+    });
   }
 };
 
@@ -256,11 +248,9 @@ const login = async (req, res) => {
     }
 
     if (user.status_akun !== "Aktif") {
-      return res
-        .status(403)
-        .json({
-          message: "Akun Anda sedang tidak aktif. Silakan hubungi pengelola.",
-        });
+      return res.status(403).json({
+        message: "Akun Anda sedang tidak aktif. Silakan hubungi pengelola.",
+      });
     }
 
     const token = jwt.sign(
@@ -286,12 +276,9 @@ const login = async (req, res) => {
       },
     });
   } catch (err) {
-    return res
-      .status(500)
-      .json({
-        message:
-          "Terjadi kendala pada sistem. Silakan coba beberapa saat lagi.",
-      });
+    return res.status(500).json({
+      message: "Terjadi kendala pada sistem. Silakan coba beberapa saat lagi.",
+    });
   }
 };
 
@@ -383,12 +370,9 @@ const searchSchool = async (req, res) => {
 
     return res.json({ schools });
   } catch (err) {
-    return res
-      .status(500)
-      .json({
-        message:
-          "Terjadi kendala pada sistem. Silakan coba beberapa saat lagi.",
-      });
+    return res.status(500).json({
+      message: "Terjadi kendala pada sistem. Silakan coba beberapa saat lagi.",
+    });
   }
 };
 
