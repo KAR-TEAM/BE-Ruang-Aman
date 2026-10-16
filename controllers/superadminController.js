@@ -220,8 +220,8 @@ const deleteUser = async (req, res) => {
 const createAdminSekolah = async (req, res) => {
   const connection = await db.getConnection();
   try {
-    const { nama, email, password, sekolah_id } = req.body;
-    if (!nama || !email || !password || !sekolah_id) {
+    const { nama, email, password, school_id } = req.body;
+    if (!nama || !email || !password || !school_id) {
       connection.release();
       return res
         .status(400)
@@ -247,7 +247,7 @@ const createAdminSekolah = async (req, res) => {
     await connection.query(
       `INSERT INTO users (id, school_id, nama, email, PASSWORD, role, status_akun, is_verified)
        VALUES (?, ?, ?, ?, ?, 'Admin', 'Aktif', 1)`,
-      [userId, sekolah_id, nama, email, hashedPassword],
+      [userId, school_id, nama, email, hashedPassword],
     );
 
     await connection.commit();
